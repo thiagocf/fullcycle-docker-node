@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  nodeapp:
+    build:
+      context: ./node
+    entrypoint: dockerize -wait tcp://db:3306 -timeout 20s docker-entrypoint.sh node index.js
+    tty: true
+    image: thiagocf/nodeapp:prod
+    container_name: nodeapp
+    networks:
+      - fullcyclenet
+    depends_on:
+      - db
+
+  nginx:
+    build:
+      context: ./nginx
+    image: thiagocf/api-node-nginx:prod
+    container_name: api-node-nginx
+    networks:
+      - fullcyclenet
+    ports:
+      - 8080:80
+    depends_on:
+      - nodeapp
+
+  db:
+    image: mysql:5.7
+    command: --innodb-use-native-aio=0
+    container_name: db
+    restart: always
+    tty: true
+    volumes: 
+      - ./mysql:/var/lib/mysql
+    environment: 
+      - MYSQL_DATABASE=nodedb
+      - MYSQL_ROOT_PASSWORD=root
+    networks: 
+      - fullcyclenet
+
+networks:
+  fullcyclenet:
+    driver: bridge
